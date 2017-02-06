@@ -16,7 +16,7 @@ struct network_config_t {
   char mqtt_username[128];
   char mqtt_password[128];
   char mqtt_incoming_topic[128];
-  char node_name[12];
+  char node_name[13];
   char project_name[24];
 };
 

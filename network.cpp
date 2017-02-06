@@ -9,6 +9,8 @@ WiFiClientSecure clientSecure;
 MQTTClient mqtt;
 network_config_t network_config;
 
+#define BUFFER_SIZE 400
+
 void network::start(const char *project_name) {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
@@ -31,8 +33,9 @@ void network::start(const char *project_name) {
 network_config_t *network::config() {
   if (network_config.ok) return &network_config;
 
-  StaticJsonBuffer<200> buffer;
-  char readFileBuffer[200];
+  memset(&network_config, 0, sizeof(network_config_t));
+  StaticJsonBuffer<BUFFER_SIZE> buffer;
+  char readFileBuffer[BUFFER_SIZE];
   if (!SPIFFS.begin()) {
     DEBUG("SPIFFS could not be accessed");
     network_config.ok = false;
@@ -47,7 +50,7 @@ network_config_t *network::config() {
     return &network_config;
   }
 
-  f.readBytes(readFileBuffer, 200);
+  f.readBytes(readFileBuffer, BUFFER_SIZE);
   DEBUG(readFileBuffer);
   JsonObject &root = buffer.parse(readFileBuffer);
 
