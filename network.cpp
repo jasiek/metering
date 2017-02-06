@@ -9,11 +9,12 @@ WiFiClientSecure clientSecure;
 MQTTClient mqtt;
 network_config_t network_config;
 
-void network::start() {
+void network::start(const char *project_name) {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   // Read network configuration, TODO: rename this.
   network::config();
+  sprintf(network_config.project_name, project_name);
 
   String nodeName = WiFi.macAddress();
   for (int i = nodeName.indexOf(':'); i > -1; i = nodeName.indexOf(':')) nodeName.remove(i, 1);
@@ -176,9 +177,10 @@ void network::maybe_reconnect() {
   // this software, and the other for one individual sensor
   char control_topic[9+12];
   sprintf(control_topic, "control/%s", network_config.node_name);
-  if (mqtt.subscribe(MASS_CONTROL_TOPIC)) {
-    DEBUG("Subscribed to %s", MASS_CONTROL_TOPIC);
+  if (mqtt.subscribe(control_topic)) {
+    DEBUG("Subscribed to %s", control_topic);
   }
+  sprintf(control_topic, "control/%s", network_config.project_name);
   if (mqtt.subscribe(control_topic)) {
     DEBUG("Subscribed to %s", control_topic);
   }

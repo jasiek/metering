@@ -6,8 +6,6 @@
 #include <MQTTClient.h>
 #include "debug.h"
 
-#define MASS_CONTROL_TOPIC "control/ESP8266-Weather"
-
 struct network_config_t {
   bool ok;
   char wifi_ssid[128];
@@ -19,10 +17,11 @@ struct network_config_t {
   char mqtt_password[128];
   char mqtt_incoming_topic[128];
   char node_name[12];
+  char project_name[24];
 };
 
 namespace network {
-  void start();
+  void start(const char *);
   network_config_t *config();
   void hello();
   void report(float temp, float humidity, float pressure, float vcc);
