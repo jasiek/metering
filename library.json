@@ -10,9 +10,16 @@
     "name": "Jan Szumiec",
     "email": "jan.szumiec@gmail.com"
   },
-  "dependencies": {
-    
-  },
+  "dependencies": [
+    {
+      "name": "MQTT",
+      "version": "~1.10.1"
+    },
+    {
+      "name": "ArduinoJson",
+      "version": "~5.8.2"
+    }
+  ],
   "frameworks": "arduino",
   "platforms": "espressif8266"
 }
