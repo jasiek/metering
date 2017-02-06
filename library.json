@@ -1,0 +1,19 @@
+{
+  "name": "Metering",
+  "keywords": "telemetry",
+  "description": "ESP8266+Arduino library for telemetry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jasiek/metering.git"
+  },
+  "authors": {
+    "name": "Jan Szumiec",
+    "email": "jan.szumiec@gmail.com"
+  },
+  "dependencies": {
+    
+  },
+  "frameworks": "arduino",
+  "platforms": "espressif8266"
+}
+
