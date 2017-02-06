@@ -5,6 +5,7 @@
 #include <Arduino.h>
 
 namespace updater {
+  void begin();
   void begin(Ticker *t);
   void update(String &url);
 }

@@ -4,12 +4,16 @@
 
 Ticker *_resetter;
 
+void updater::begin() {
+  _resetter = NULL;
+}
+
 void updater::begin(Ticker *t) {
   _resetter = t;
 }
 
 void updater::update(String &url) {
-  _resetter->detach();
+  if (_resetter != NULL) _resetter->detach();
   ESP8266HTTPUpdate upd;
   upd.rebootOnUpdate(true);
   switch(upd.update(url, GIT_REVISION)) {
