@@ -6,31 +6,49 @@
 #include <MQTTClient.h>
 #include "debug.h"
 
-struct network_config_t {
+#define WIFI_SSID_LEN 32
+#define WIFI_PASS_LEN 64
+
+struct wifi_config_t {
   bool ok;
-  char wifi_ssid[128];
-  char wifi_pass[128];
-  char mqtt_server[128];
-  int mqtt_port;
-  bool mqtt_ssl;
-  char mqtt_username[128];
-  char mqtt_password[128];
-  char mqtt_incoming_topic[128];
-  char node_name[13];
-  char project_name[24];
+  char ssid[WIFI_SSID_LEN + 1];
+  char password[WIFI_PASS_LEN + 1];
+}
+
+#define MQTT_FIELD_LEN 64
+
+struct mqtt_config_t {
+  bool ok;
+  char server[MQTT_FIELD_LEN + 1];
+  int port;
+  bool ssl;
+  char username[MQTT_FIELD_LEN + 1];
+  char password[MQTT_FIELD_LEN + 1];
+}
+
+#define MAC_LEN 12
+#define PROJECT_NAME_LEN 24
+
+struct network_config_t {
+  char mqtt_client_name[MQTT_FIELD_LEN + 1];
+  char mqtt_device_topic[MQTT_FIELD_LEN + 1];
+  char mqtt_incoming_topic[MQTT_FIELD_LEN + 1];
+  char node_name[MAC_LEN + 1];
+  char project_name[PROJECT_NAME_LEN + 1];
 };
 
 namespace network {
   void start(const char *);
-  network_config_t *config();
-  void hello();
   void report(float temp, float humidity, float pressure, float vcc);
-  void send(const char *topic, const char *payload, bool retained);
-  const char* mqtt_client_name();
-  const char* mqtt_topic();
   void maybe_reconnect();
   void mqtt_message_received_cb(String topic, String payload, char * bytes, unsigned int length);
   void loop();
+
+  // "private" functions
+  bool read_config();
+  void set_node_name();
+  void send(const char *topic, const char *payload, bool retained);
+  void subscribe();
 }
 
 #endif

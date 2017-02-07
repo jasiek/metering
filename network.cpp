@@ -1,97 +1,73 @@
 #include "network.h"
 #include "updater.h"
 #include <FS.h>
-#include <ArduinoJson.h>
 
 ESP8266WiFiMulti WiFiMulti;
 WiFiClient clientRegular;
 WiFiClientSecure clientSecure;
 MQTTClient mqtt;
 network_config_t network_config;
+wifi_config_t wifi_config;
+mqtt_config_t mqtt_config;
 
 #define BUFFER_SIZE 400
 
 void network::start(const char *project_name) {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
-  // Read network configuration, TODO: rename this.
-  network::config();
-  sprintf(network_config.project_name, project_name);
+  // Read WiFi and MQTT configuration
+  network::read_config();
 
-  String nodeName = WiFi.macAddress();
-  for (int i = nodeName.indexOf(':'); i > -1; i = nodeName.indexOf(':')) nodeName.remove(i, 1);
-  nodeName.toLowerCase();
-  strncpy(network_config.node_name, nodeName.c_str(), 12);
-  DEBUG("Node name: %s", network_config.node_name);
+  // Set some convenience variables
+  strncpy(network_config.project_name, project_name, PROJECT_NAME_LEN);
 
-  WiFiMulti.addAP(network_config.wifi_ssid, network_config.wifi_pass);
+  WiFiMulti.addAP(wifi_config.ssid, wifi_config.password);
   mqtt.begin(network_config.mqtt_server,
     network_config.mqtt_port,
     network_config.mqtt_ssl ? clientSecure : clientRegular);
 }
 
-network_config_t *network::config() {
-  if (network_config.ok) return &network_config;
-
+bool network::read_config() {
   memset(&network_config, 0, sizeof(network_config_t));
-  StaticJsonBuffer<BUFFER_SIZE> buffer;
-  char readFileBuffer[BUFFER_SIZE];
+  memset(&mqtt_config, 0, sizeof(mqtt_config_t));
+  memset(&wifi_config, 0, sizeof(wifi_config_t));
+
   if (!SPIFFS.begin()) {
     DEBUG("SPIFFS could not be accessed");
-    network_config.ok = false;
-    return &network_config;
+    return false;
   }
 
   File f = SPIFFS.open("/config.json", "r");
-
   if (!f) {
-    DEBUG("Opening config.json failed");
-    network_config.ok = false;
-    return &network_config;
+    DEBUG("Opening /config.json failed");
+    return false;
   }
 
-  f.readBytes(readFileBuffer, BUFFER_SIZE);
-  DEBUG(readFileBuffer);
-  JsonObject &root = buffer.parse(readFileBuffer);
+  StaticJsonBuffer<BUFFER_SIZE> json;
+  char readFileBuffer[BUFFER_SIZE];
+
+  JsonObject &root = json.parse(readFileBuffer);
 
   if (!root.success()) {
-    DEBUG("Parsing config.json failed");
-    network_config.ok = false;
-    return &network_config;
+    DEBUG("Couldn't parse JSON");
+    DEBUG(readFileBuffer);
+    SPIFFS.end();
+    return false;
   }
 
-  strncpy(network_config.wifi_ssid, root["wifi_ssid"].asString(), 128);
-  strncpy(network_config.wifi_pass, root["wifi_pass"].asString(), 128);
-  strncpy(network_config.mqtt_server, root["mqtt_server"].asString(), 128);
-  network_config.mqtt_port = root["mqtt_port"].as<int>();
-  strncpy(network_config.mqtt_username, root["mqtt_username"].asString(), 128);
-  strncpy(network_config.mqtt_password, root["mqtt_password"].asString(), 128);
-  network_config.mqtt_ssl = root["mqtt_ssl"].as<bool>();
-  network_config.ok = true;
+  strncpy(wifi_config.ssid, root["wifi_ssid"].asString(), WIFI_SSID_LEN);
+  strncpy(wifi_config.password, root["wifi_pass"].asString(), WIFI_PASS_LEN);
+  wifi_config.ok = true;
+
+  strncpy(mqtt_config.server, root["mqtt_server"].asString(), MQTT_FIELD_LEN);
+  mqtt_config.port = root["mqtt_port"].as<int>();
+  strncpy(mqtt_config.username, root["mqtt_username"].asString(), MQTT_FIELD_LEN);
+  strncpy(mqtt_config.password, root["mqtt_password"].asString(), MQTT_FIELD_LEN);
+  mqtt_config.ssl = root["mqtt_ssl"].as<bool>();
+  mqtt_config.ok = true;
 
   SPIFFS.end();
-
-  return &network_config;
-}
-
-void network::hello() {
-  StaticJsonBuffer<512> buffer;
-  JsonObject& root = buffer.createObject();
-  String stream;
-
-  root["mac"] = network_config.node_name;
-  root["sdk"] = ESP.getSdkVersion();
-  root["boot_mode"] = ESP.getBootMode();
-  root["boot_version"] = ESP.getBootVersion();
-  root["chip_id"] = ESP.getChipId();
-  root["core_version"] = ESP.getCoreVersion();
-  root["cpu_freq"] = ESP.getCpuFreqMHz();
-  root["md5"] =  ESP.getSketchMD5();
-  root["git_rev"] = GIT_REVISION;
-  root["uptime"] = millis() / 1000;
-
-  root.printTo(stream);
-  send("hello", stream.c_str(), false);
+  return true;
 }
 
 void network::report(float temp, float humidity, float pressure, float vcc) {
@@ -144,18 +120,6 @@ void network::send(const char *topic, const char *payload, bool retained) {
   }
 }
 
-const char *network::mqtt_client_name() {
-  static char client_name[64];
-  sprintf(client_name, "ESP8266-Weather (%s)", network_config.node_name);
-  return client_name;
-}
-
-const char *network::mqtt_topic() {
-  static char topic[64];
-  sprintf(topic, "/devices/%s", network_config.node_name);
-  return topic;
-}
-
 void network::maybe_reconnect() {
   if (WiFiMulti.run() == WL_CONNECTED && mqtt.connected()) return;
 
@@ -169,27 +133,20 @@ void network::maybe_reconnect() {
   while (!mqtt.connected()) {
     DEBUG("(Re)connecting to MQTT");
     if (strlen(network_config.mqtt_username) == 0) {
-      mqtt.connect(mqtt_client_name());
+      mqtt.connect(network_config.mqtt_client_name);
     } else {
-      mqtt.connect(mqtt_client_name(), network_config.mqtt_username, network_config.mqtt_password);
+      mqtt.connect(network_config.mqtt_client_name, mqtt_config.username, mqtt_config.password);
     }
     delay(1000);
   }
 
-  // Subscribe to two control topics, one for all sensors using
-  // this software, and the other for one individual sensor
-  char control_topic[9+12];
-  sprintf(control_topic, "control/%s", network_config.node_name);
-  if (mqtt.subscribe(control_topic)) {
-    DEBUG("Subscribed to %s", control_topic);
-  }
-  sprintf(control_topic, "control/%s", network_config.project_name);
-  if (mqtt.subscribe(control_topic)) {
-    DEBUG("Subscribed to %s", control_topic);
-  }
+  subscribe();
 }
 
 void network::mqtt_message_received_cb(String topic, String payload, char * bytes, unsigned int length) {
+  DEBUG("Incoming message from %s.", topic);
+  DEBUG("Payload: %s", payload);
+
   if (topic.startsWith("control/")) {
     if (payload.startsWith("RESET")) ESP.restart();
     if (payload.startsWith("UPDATE")) {
@@ -198,16 +155,37 @@ void network::mqtt_message_received_cb(String topic, String payload, char * byte
       updater::update(payload);
     }
     if (payload.startsWith("PING")) {
-      hello();
+      send("hello", "PONG", false);
     }
   }
-
-  DEBUG("incoming: ");
-  DEBUG(topic);
-  DEBUG(" - ");
-  DEBUG(payload);
 }
 
 void network::loop() {
   mqtt.loop();
+}
+
+void network::set_node_name() {
+  String nodeName = WiFi.macAddress();
+  for (int i = nodeName.indexOf(':'); i > -1; i = nodeName.indexOf(':')) nodeName.remove(i, 1);
+  nodeName.toLowerCase();
+  strncpy(network_config.node_name, nodeName.c_str(), MAC_LEN);
+  DEBUG("Node name: %s", network_config.node_name);
+
+  // Pull this out some day, maybe?
+  snprintf(network_config.mqtt_client_name, MQTT_FIELD_LEN, "%s (%s)", network_config.project_name, network_config.node_name);
+}
+
+void network::subscribe() {
+  // Subscribe to two control topics, one for all sensors using
+  // this software, and the other for one individual sensor
+  char control_topic[9 + MAC_LEN];
+  memset(control_topic, 0, 9 + MAC_LEN);
+  snprintf(control_topic, 8 + MAC_LEN, "control/%s", network_config.node_name);
+  if (mqtt.subscribe(control_topic)) {
+    DEBUG("Subscribed to %s", control_topic);
+  }
+  sprintf(control_topic, 8 + MAC_LEN, "control/%s", network_config.project_name);
+  if (mqtt.subscribe(control_topic)) {
+    DEBUG("Subscribed to %s", control_topic);
+  }
 }
