@@ -103,25 +103,7 @@ bool network::read_config() {
   return true;
 }
 
-void network::report(float temp, float humidity, float pressure, float vcc) {
-  StaticJsonBuffer<BUFFER_SIZE> buffer;
-  String stream;
-  JsonObject& root = buffer.createObject();
-  if (!isnan(temp)) {
-    root["temperature"] = temp;
-  }
-  if (!isnan(humidity)) {
-    root["humidity"] = humidity;
-  }
-  if (!isnan(pressure)) {
-    root["pressure"] = pressure;
-  }
-
-  root["voltage"] = vcc;
-  root["rssi"] = WiFi.RSSI();
-  root["uptime"] = millis() / 1000;
-  root.printTo(stream);
-
+void network::report(String &stream) {
   send(network_config.mqtt_device_topic, stream.c_str(), true);
 }
 
