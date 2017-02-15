@@ -11,7 +11,7 @@ network_config_t network_config;
 wifi_config_t wifi_config;
 mqtt_config_t mqtt_config;
 
-#define BUFFER_SIZE 400
+#define BUFFER_SIZE 1024
 
 void network::start(const char *project_name) {
   WiFi.persistent(false);
@@ -27,6 +27,32 @@ void network::start(const char *project_name) {
   mqtt.begin(mqtt_config.server,
     mqtt_config.port,
     mqtt_config.ssl ? clientSecure : clientRegular);
+}
+
+void network::hello() {
+  StaticJsonBuffer<BUFFER_SIZE> json;
+  JsonObject &root = json.createObject();
+
+  root["mac"] = network_config.node_name;
+  root["chip_id"] = ESP.getChipId();
+  root["flash_chip_id"] = ESP.getFlashChipId();
+  root["flash_chip_size"] = ESP.getFlashChipSize();
+  root["flash_chip_real_size"] = ESP.getFlashChipRealSize();
+  root["flash_chip_speed"] = ESP.getFlashChipSpeed();
+  root["core_version"] = ESP.getCoreVersion();
+  root["sdk_version"] = ESP.getSdkVersion();
+  root["boot_version"] = ESP.getBootVersion();
+  root["boot_mode"] = ESP.getBootMode();
+  root["cpu_mhz"] = ESP.getCpuFreqMHz();
+  root["reset_reason"] = ESP.getResetReason();
+  root["reset_info"] = ESP.getResetInfo();
+  root["sketch_size"] = ESP.getSketchSize();
+  root["sketch_md5"] = ESP.getSketchMD5();
+  root["sketch_git_rev"] = GIT_REVISION;
+
+  String stream;
+  root.printTo(stream);
+  send("hello", stream.c_str(), false);
 }
 
 bool network::read_config() {
@@ -78,7 +104,7 @@ bool network::read_config() {
 }
 
 void network::report(float temp, float humidity, float pressure, float vcc) {
-  StaticJsonBuffer<200> buffer;
+  StaticJsonBuffer<BUFFER_SIZE> buffer;
   String stream;
   JsonObject& root = buffer.createObject();
   if (!isnan(temp)) {

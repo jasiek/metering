@@ -39,6 +39,7 @@ struct network_config_t {
 
 namespace network {
   void start(const char *);
+  void hello();
   void report(float temp, float humidity, float pressure, float vcc);
   void maybe_reconnect();
   void mqtt_message_received_cb(String topic, String payload, char * bytes, unsigned int length);
