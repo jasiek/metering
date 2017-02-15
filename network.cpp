@@ -35,13 +35,13 @@ bool network::read_config() {
   memset(&wifi_config, 0, sizeof(wifi_config_t));
 
   if (!SPIFFS.begin()) {
-    DEBUG("SPIFFS could not be accessed");
+    M_DEBUG("SPIFFS could not be accessed");
     return false;
   }
 
   File f = SPIFFS.open("/config.json", "r");
   if (!f) {
-    DEBUG("Opening /config.json failed");
+    M_DEBUG("Opening /config.json failed");
     return false;
   }
 
@@ -52,8 +52,8 @@ bool network::read_config() {
   JsonObject &root = json.parse(readFileBuffer);
 
   if (!root.success()) {
-    DEBUG("Couldn't parse JSON");
-    DEBUG(readFileBuffer);
+    M_DEBUG("Couldn't parse JSON");
+    M_DEBUG(readFileBuffer);
     SPIFFS.end();
     return false;
   }
@@ -102,8 +102,8 @@ void network::report(float temp, float humidity, float pressure, float vcc) {
 void network::send(const char *topic, const char *payload, bool retained) {
   maybe_reconnect();
 
-  DEBUG("topic: %s", topic);
-  DEBUG("payload: %s", payload);
+  M_DEBUG("topic: %s", topic);
+  M_DEBUG("payload: %s", payload);
 
   MQTTMessage message;
   message.topic = (char*)topic;
@@ -117,9 +117,9 @@ void network::send(const char *topic, const char *payload, bool retained) {
     _delay *= 2;
     delay(_delay);
     if (mqtt.connected()) {
-      DEBUG("sending");
+      M_DEBUG("sending");
       if (mqtt.publish(&message)) {
-        DEBUG("published");
+        M_DEBUG("published");
         retry = 0;
       }
     }
@@ -130,14 +130,14 @@ void network::maybe_reconnect() {
   if (WiFiMulti.run() == WL_CONNECTED && mqtt.connected()) return;
 
   while (WiFiMulti.run() != WL_CONNECTED) {
-    DEBUG("Reconnecting to WiFi");
+    M_DEBUG("Reconnecting to WiFi");
     delay(1000);
   }
 
-  DEBUG("Connected, got IP: %s", WiFi.localIP().toString().c_str());
+  M_DEBUG("Connected, got IP: %s", WiFi.localIP().toString().c_str());
 
   while (!mqtt.connected()) {
-    DEBUG("(Re)connecting to MQTT");
+    M_DEBUG("(Re)connecting to MQTT");
     if (strlen(mqtt_config.username) == 0) {
       mqtt.connect(network_config.mqtt_client_name);
     } else {
@@ -150,8 +150,8 @@ void network::maybe_reconnect() {
 }
 
 void network::mqtt_message_received_cb(String topic, String payload, char * bytes, unsigned int length) {
-  DEBUG("Incoming message from %s.", topic.c_str());
-  DEBUG("Payload: %s", payload.c_str());
+  M_DEBUG("Incoming message from %s.", topic.c_str());
+  M_DEBUG("Payload: %s", payload.c_str());
 
   if (topic.startsWith("control/")) {
     if (payload.startsWith("RESET")) ESP.restart();
@@ -175,7 +175,7 @@ void network::set_node_name() {
   for (int i = nodeName.indexOf(':'); i > -1; i = nodeName.indexOf(':')) nodeName.remove(i, 1);
   nodeName.toLowerCase();
   strncpy(network_config.node_name, nodeName.c_str(), MAC_LEN);
-  DEBUG("Node name: %s", network_config.node_name);
+  M_DEBUG("Node name: %s", network_config.node_name);
 
   // Pull this out some day, maybe?
   snprintf(network_config.mqtt_client_name, MQTT_FIELD_LEN, "%s (%s)", network_config.project_name, network_config.node_name);
@@ -189,12 +189,12 @@ void network::subscribe() {
   memset(control_topic, 0, 35);
   snprintf(control_topic, 9 + MAC_LEN, "control/%s", network_config.node_name);
   if (mqtt.subscribe(control_topic)) {
-    DEBUG("Subscribed to %s", control_topic);
+    M_DEBUG("Subscribed to %s", control_topic);
   }
 
   memset(control_topic, 0, 35);
   snprintf(control_topic, 9 + PROJECT_NAME_LEN, "control/%s", network_config.project_name);
   if (mqtt.subscribe(control_topic)) {
-    DEBUG("Subscribed to %s", control_topic);
+    M_DEBUG("Subscribed to %s", control_topic);
   }
 }
