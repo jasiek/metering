@@ -13,7 +13,7 @@ struct wifi_config_t {
   bool ok;
   char ssid[WIFI_SSID_LEN + 1];
   char password[WIFI_PASS_LEN + 1];
-}
+};
 
 #define MQTT_FIELD_LEN 64
 
@@ -24,7 +24,7 @@ struct mqtt_config_t {
   bool ssl;
   char username[MQTT_FIELD_LEN + 1];
   char password[MQTT_FIELD_LEN + 1];
-}
+};
 
 #define MAC_LEN 12
 #define PROJECT_NAME_LEN 24

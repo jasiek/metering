@@ -13,9 +13,10 @@ void updater::begin(Ticker *t) {
 }
 
 void updater::update(String &url) {
+  DEBUG("Attempting to update from %s");
   if (_resetter != NULL) _resetter->detach();
   ESP8266HTTPUpdate upd;
-  upd.rebootOnUpdate(true);
+  upd.rebootOnUpdate(false);
   switch(upd.update(url, GIT_REVISION)) {
     case HTTP_UPDATE_FAILED:
       DEBUG("Update failed.");

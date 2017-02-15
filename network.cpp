@@ -1,6 +1,7 @@
 #include "network.h"
 #include "updater.h"
 #include <FS.h>
+#include <ArduinoJson.h>
 
 ESP8266WiFiMulti WiFiMulti;
 WiFiClient clientRegular;
@@ -16,15 +17,16 @@ void network::start(const char *project_name) {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   // Read WiFi and MQTT configuration
-  network::read_config();
+  read_config();
 
   // Set some convenience variables
   strncpy(network_config.project_name, project_name, PROJECT_NAME_LEN);
+  set_node_name();
 
   WiFiMulti.addAP(wifi_config.ssid, wifi_config.password);
-  mqtt.begin(network_config.mqtt_server,
-    network_config.mqtt_port,
-    network_config.mqtt_ssl ? clientSecure : clientRegular);
+  mqtt.begin(mqtt_config.server,
+    mqtt_config.port,
+    mqtt_config.ssl ? clientSecure : clientRegular);
 }
 
 bool network::read_config() {
@@ -46,6 +48,7 @@ bool network::read_config() {
   StaticJsonBuffer<BUFFER_SIZE> json;
   char readFileBuffer[BUFFER_SIZE];
 
+  f.readBytes(readFileBuffer, BUFFER_SIZE);
   JsonObject &root = json.parse(readFileBuffer);
 
   if (!root.success()) {
@@ -55,14 +58,18 @@ bool network::read_config() {
     return false;
   }
 
-  strncpy(wifi_config.ssid, root["wifi_ssid"].asString(), WIFI_SSID_LEN);
-  strncpy(wifi_config.password, root["wifi_pass"].asString(), WIFI_PASS_LEN);
+  strncpy(wifi_config.ssid, root["wifi_ssid"].as<char*>(), WIFI_SSID_LEN);
+  strncpy(wifi_config.password, root["wifi_pass"].as<char*>(), WIFI_PASS_LEN);
   wifi_config.ok = true;
 
-  strncpy(mqtt_config.server, root["mqtt_server"].asString(), MQTT_FIELD_LEN);
+  strncpy(mqtt_config.server, root["mqtt_server"].as<char*>(), MQTT_FIELD_LEN);
   mqtt_config.port = root["mqtt_port"].as<int>();
-  strncpy(mqtt_config.username, root["mqtt_username"].asString(), MQTT_FIELD_LEN);
-  strncpy(mqtt_config.password, root["mqtt_password"].asString(), MQTT_FIELD_LEN);
+  if (root["mqtt_username"].success()) {
+    strncpy(mqtt_config.username, root["mqtt_username"].as<char*>(), MQTT_FIELD_LEN);
+  }
+  if (root["mqtt_password"].success()) {
+    strncpy(mqtt_config.password, root["mqtt_password"].as<char*>(), MQTT_FIELD_LEN);
+  }
   mqtt_config.ssl = root["mqtt_ssl"].as<bool>();
   mqtt_config.ok = true;
 
@@ -89,7 +96,7 @@ void network::report(float temp, float humidity, float pressure, float vcc) {
   root["uptime"] = millis() / 1000;
   root.printTo(stream);
 
-  send(mqtt_topic(), stream.c_str(), true);
+  send(network_config.mqtt_device_topic, stream.c_str(), true);
 }
 
 void network::send(const char *topic, const char *payload, bool retained) {
@@ -110,7 +117,6 @@ void network::send(const char *topic, const char *payload, bool retained) {
     _delay *= 2;
     delay(_delay);
     if (mqtt.connected()) {
-      mqtt.loop();
       DEBUG("sending");
       if (mqtt.publish(&message)) {
         DEBUG("published");
@@ -132,7 +138,7 @@ void network::maybe_reconnect() {
 
   while (!mqtt.connected()) {
     DEBUG("(Re)connecting to MQTT");
-    if (strlen(network_config.mqtt_username) == 0) {
+    if (strlen(mqtt_config.username) == 0) {
       mqtt.connect(network_config.mqtt_client_name);
     } else {
       mqtt.connect(network_config.mqtt_client_name, mqtt_config.username, mqtt_config.password);
@@ -144,8 +150,8 @@ void network::maybe_reconnect() {
 }
 
 void network::mqtt_message_received_cb(String topic, String payload, char * bytes, unsigned int length) {
-  DEBUG("Incoming message from %s.", topic);
-  DEBUG("Payload: %s", payload);
+  DEBUG("Incoming message from %s.", topic.c_str());
+  DEBUG("Payload: %s", payload.c_str());
 
   if (topic.startsWith("control/")) {
     if (payload.startsWith("RESET")) ESP.restart();
@@ -173,18 +179,21 @@ void network::set_node_name() {
 
   // Pull this out some day, maybe?
   snprintf(network_config.mqtt_client_name, MQTT_FIELD_LEN, "%s (%s)", network_config.project_name, network_config.node_name);
+  snprintf(network_config.mqtt_device_topic, MQTT_FIELD_LEN, "devices/%s", network_config.node_name);
 }
 
 void network::subscribe() {
   // Subscribe to two control topics, one for all sensors using
   // this software, and the other for one individual sensor
-  char control_topic[9 + MAC_LEN];
-  memset(control_topic, 0, 9 + MAC_LEN);
-  snprintf(control_topic, 8 + MAC_LEN, "control/%s", network_config.node_name);
+  char control_topic[35];
+  memset(control_topic, 0, 35);
+  snprintf(control_topic, 9 + MAC_LEN, "control/%s", network_config.node_name);
   if (mqtt.subscribe(control_topic)) {
     DEBUG("Subscribed to %s", control_topic);
   }
-  sprintf(control_topic, 8 + MAC_LEN, "control/%s", network_config.project_name);
+
+  memset(control_topic, 0, 35);
+  snprintf(control_topic, 9 + PROJECT_NAME_LEN, "control/%s", network_config.project_name);
   if (mqtt.subscribe(control_topic)) {
     DEBUG("Subscribed to %s", control_topic);
   }
