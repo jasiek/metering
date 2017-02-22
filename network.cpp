@@ -104,7 +104,7 @@ bool network::read_config() {
 }
 
 void network::report(String &stream) {
-  send(network_config.mqtt_device_topic, stream.c_str(), true);
+  send(network_config.mqtt_device_topic, stream.c_str(), false);
 }
 
 void network::send(const char *topic, const char *payload, bool retained) {
