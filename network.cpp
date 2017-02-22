@@ -33,6 +33,7 @@ void network::hello() {
   StaticJsonBuffer<BUFFER_SIZE> json;
   JsonObject &root = json.createObject();
 
+  root["project"] = network_config.project_name;
   root["mac"] = network_config.node_name;
   root["chip_id"] = ESP.getChipId();
   root["flash_chip_id"] = ESP.getFlashChipId();
