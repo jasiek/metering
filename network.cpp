@@ -170,7 +170,7 @@ void network::mqtt_message_received_cb(String topic, String payload, char * byte
       updater::update(payload);
     }
     if (payload.startsWith("PING")) {
-      send("hello", "PONG", false);
+      send("pong", network_config.node_name, false);
     }
   }
 }
