@@ -1,9 +1,7 @@
 #include "debug.h"
 
 void metering::debug(const char *file, int line, const char *s) {
-  char message[1024];
-  snprintf(message, 1024, "%s:%d: %s", file, line, s);
-  Serial.println(message);
+  Serial.printf("%s:%d: %s\r\n", file, line, s);
 }
 
 void metering::debug(const char *file, int line, String &s) {
