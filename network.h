@@ -39,6 +39,7 @@ struct network_config_t {
 
 namespace network {
   void start(const char *);
+  void start(const char *, bool);
   void hello();
   void report(String &stream);
   void maybe_reconnect();

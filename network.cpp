@@ -12,6 +12,10 @@ wifi_config_t wifi_config;
 mqtt_config_t mqtt_config;
 
 void network::start(const char *project_name) {
+  network::start(project_name, false);
+}
+
+void network::start(const char *project_name, bool mqtt_username_as_device_id) {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   // Read WiFi and MQTT configuration
@@ -19,6 +23,11 @@ void network::start(const char *project_name) {
 
   // Set some convenience variables
   strncpy(network_config.project_name, project_name, PROJECT_NAME_LEN);
+
+  // Optionally, set custom device identifier
+  if (mqtt_username_as_device_id) {
+    snprintf(network_config.mqtt_device_topic, MQTT_FIELD_LEN, "devices/%s", mqtt_config.username);
+  }
   set_node_name();
 
   WiFiMulti.addAP(wifi_config.ssid, wifi_config.password);
@@ -182,19 +191,21 @@ void network::set_node_name() {
 
   // Pull this out some day, maybe?
   snprintf(network_config.mqtt_client_name, MQTT_FIELD_LEN, "%s (%s)", network_config.project_name, network_config.node_name);
-  snprintf(network_config.mqtt_device_topic, MQTT_FIELD_LEN, "devices/%s", network_config.node_name);
+  if (strlen(network_config.mqtt_device_topic) == 0)
+    snprintf(network_config.mqtt_device_topic, MQTT_FIELD_LEN, "devices/%s", network_config.node_name);
 }
 
 void network::subscribe() {
   // Subscribe to two control topics, one for all sensors using
   // this software, and the other for one individual sensor
-  char control_topic[35];
-  memset(control_topic, 0, 35);
-  snprintf(control_topic, 9 + MAC_LEN, "control/%s", network_config.node_name);
-  if (mqtt.subscribe(control_topic)) {
-    M_DEBUG("Subscribed to %s", control_topic);
+
+  String topic = String(network_config.mqtt_device_topic);
+  topic.replace("devices/", "control/");
+  if (mqtt.subscribe(topic.c_str())) {
+    M_DEBUG("Subscribed to %s", topic.c_str());
   }
 
+  char control_topic[35];
   memset(control_topic, 0, 35);
   snprintf(control_topic, 9 + PROJECT_NAME_LEN, "control/%s", network_config.project_name);
   if (mqtt.subscribe(control_topic)) {
