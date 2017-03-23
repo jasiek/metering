@@ -11,8 +11,6 @@ network_config_t network_config;
 wifi_config_t wifi_config;
 mqtt_config_t mqtt_config;
 
-#define BUFFER_SIZE 1024
-
 void network::start(const char *project_name) {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
@@ -30,7 +28,7 @@ void network::start(const char *project_name) {
 }
 
 void network::hello() {
-  StaticJsonBuffer<BUFFER_SIZE> json;
+  DynamicJsonBuffer json;
   JsonObject &root = json.createObject();
 
   root["project"] = network_config.project_name;
@@ -72,15 +70,11 @@ bool network::read_config() {
     return false;
   }
 
-  StaticJsonBuffer<BUFFER_SIZE> json;
-  char readFileBuffer[BUFFER_SIZE];
-
-  f.readBytes(readFileBuffer, BUFFER_SIZE);
-  JsonObject &root = json.parse(readFileBuffer);
+  DynamicJsonBuffer json;
+  JsonObject &root = json.parse(f);
 
   if (!root.success()) {
     M_DEBUG("Couldn't parse JSON");
-    M_DEBUG(readFileBuffer);
     SPIFFS.end();
     return false;
   }
