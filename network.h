@@ -9,6 +9,14 @@
 #define WIFI_SSID_LEN 32
 #define WIFI_PASS_LEN 64
 
+#ifndef MQTT_RECONNECT_DELAY
+#define MQTT_RECONNECT_DELAY 1000
+#endif
+
+#ifndef WIFI_RECONNECT_DELAY
+#define WIFI_RECONNECT_DELAY 1000
+#endif
+
 struct wifi_config_t {
   bool ok;
   char ssid[WIFI_SSID_LEN + 1];

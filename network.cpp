@@ -143,7 +143,7 @@ void network::maybe_reconnect() {
 
   while (WiFiMulti.run() != WL_CONNECTED) {
     M_DEBUG("Reconnecting to WiFi");
-    delay(1000);
+    delay(WIFI_RECONNECT_DELAY);
   }
 
   M_DEBUG("Connected, got IP: %s", WiFi.localIP().toString().c_str());
@@ -155,7 +155,7 @@ void network::maybe_reconnect() {
     } else {
       mqtt.connect(network_config.mqtt_client_name, mqtt_config.username, mqtt_config.password);
     }
-    delay(1000);
+    delay(MQTT_RECONNECT_DELAY);
   }
 
   subscribe();
