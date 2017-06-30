@@ -14,7 +14,7 @@
   "dependencies": [
     {
       "name": "MQTT",
-      "version": "https://github.com/256dpi/arduino-mqtt.git#099b14f0c6368b729b222d0b80fe84d123aaddda"
+      "version": "2.0.0"
     },
     {
       "name": "ArduinoJson",
@@ -38,4 +38,3 @@
     ]
   }
 }
-
