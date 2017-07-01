@@ -117,12 +117,6 @@ void network::send(const char *topic, const char *payload, bool retained) {
   M_DEBUG("topic: %s", topic);
   M_DEBUG("payload: %s", payload);
 
-  MQTTMessage message;
-  message.topic = (char*)topic;
-  message.length = strlen(payload);
-  message.payload = (char *)payload;
-  message.retained = retained;
-
   int retry = 10;
   int _delay = 50;
   while (retry--) {
@@ -130,7 +124,7 @@ void network::send(const char *topic, const char *payload, bool retained) {
     delay(_delay);
     if (mqtt.connected()) {
       M_DEBUG("sending");
-      if (mqtt.publish(&message)) {
+      if (mqtt.publish(topic, payload, retained, 1)) {
         M_DEBUG("published");
         retry = 0;
       }
