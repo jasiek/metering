@@ -51,7 +51,7 @@ namespace network {
   void hello();
   void report(String &stream);
   void maybe_reconnect();
-  void mqtt_message_received_cb(String topic, String payload, char * bytes, unsigned int length);
+  void mqtt_message_received_cb(String &topic, String &payload);
   void loop();
 
   // "private" functions

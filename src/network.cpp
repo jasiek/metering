@@ -6,7 +6,7 @@
 ESP8266WiFiMulti WiFiMulti;
 WiFiClient clientRegular;
 WiFiClientSecure clientSecure;
-MQTTClient mqtt;
+MQTTClient mqtt(MQTT_BUFFER_SIZE);
 network_config_t network_config;
 wifi_config_t wifi_config;
 mqtt_config_t mqtt_config;
@@ -34,6 +34,7 @@ void network::start(const char *project_name, bool mqtt_username_as_device_id) {
   mqtt.begin(mqtt_config.server,
     mqtt_config.port,
     mqtt_config.ssl ? clientSecure : clientRegular);
+  mqtt.onMessage(network::mqtt_message_received_cb);
 }
 
 void network::hello() {
@@ -155,7 +156,7 @@ void network::maybe_reconnect() {
   subscribe();
 }
 
-void network::mqtt_message_received_cb(String topic, String payload, char * bytes, unsigned int length) {
+void network::mqtt_message_received_cb(String &topic, String &payload) {
   M_DEBUG("Incoming message from %s.", topic.c_str());
   M_DEBUG("Payload: %s", payload.c_str());
 
