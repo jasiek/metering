@@ -171,6 +171,12 @@ void network::mqtt_message_received_cb(String &topic, String &payload) {
       send("pong", network_config.node_name, false);
     }
   }
+  if (topic == "time/epoch") {
+    long t = atol(payload);
+    if (t > 0) {
+      sntp_set_system_time(t);
+    }
+  }
 }
 
 void network::loop() {
