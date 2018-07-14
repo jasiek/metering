@@ -4,6 +4,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include <MQTTClient.h>
+#include "time.h"
 #include "debug.h"
 
 #define WIFI_SSID_LEN 32

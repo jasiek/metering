@@ -10,6 +10,7 @@ MQTTClient mqtt(MQTT_BUFFER_SIZE);
 network_config_t network_config;
 wifi_config_t wifi_config;
 mqtt_config_t mqtt_config;
+extern uint32 timestamp;
 
 void network::start(const char *project_name) {
   network::start(project_name, false);
@@ -38,6 +39,7 @@ void network::start(const char *project_name, bool mqtt_username_as_device_id) {
 }
 
 void network::hello() {
+  subscribe();
   DynamicJsonBuffer json;
   JsonObject &root = json.createObject();
 
@@ -62,6 +64,13 @@ void network::hello() {
   String stream;
   root.printTo(stream);
   send("hello", stream.c_str(), false);
+
+  M_DEBUG("Waiting 10 seconds for timestamp");
+  int timeout = 10;
+  while (timeout-- && timestamp == 0) {
+    delay(1000);
+    loop();
+  }
 }
 
 bool network::read_config() {
@@ -172,9 +181,10 @@ void network::mqtt_message_received_cb(String &topic, String &payload) {
     }
   }
   if (topic == "time/epoch") {
-    long t = atol(payload);
+    long t = atol(payload.c_str());
     if (t > 0) {
-      sntp_set_system_time(t);
+      time::set(t);
+      M_DEBUG("Time set to %d", t);
     }
   }
 }
@@ -199,6 +209,7 @@ void network::set_node_name() {
 void network::subscribe() {
   // Subscribe to two control topics, one for all sensors using
   // this software, and the other for one individual sensor
+  maybe_reconnect();
 
   String topic = String(network_config.mqtt_device_topic);
   topic.replace("devices/", "control/");
@@ -211,5 +222,10 @@ void network::subscribe() {
   snprintf(control_topic, 9 + PROJECT_NAME_LEN, "control/%s", network_config.project_name);
   if (mqtt.subscribe(control_topic)) {
     M_DEBUG("Subscribed to %s", control_topic);
+  }
+
+  // Subscribe to an MQTT channel with the current time
+  if (mqtt.subscribe("time/epoch")) {
+    M_DEBUG("Subscribed to time/epoch");
   }
 }

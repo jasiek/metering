@@ -8,6 +8,7 @@
 namespace metering {
   void debug(const char *, int, const char *);
   void debug(const char *, int, const char *, const char *);
+  void debug(const char *, int, const char *, uint32 u);
   void debug(const char *, int, String &);
   void debug(const char *, int, String &, String &);
 }
