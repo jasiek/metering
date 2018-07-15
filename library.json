@@ -2,7 +2,7 @@
   "name": "Metering",
   "keywords": "telemetry",
   "description": "ESP8266+Arduino library for telemetry",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/jasiek/metering.git"
@@ -14,11 +14,11 @@
   "dependencies": [
     {
       "name": "MQTT",
-      "version": "2.0.0"
+      "version": "2.3.2"
     },
     {
       "name": "ArduinoJson",
-      "version": "5.8.2"
+      "version": "5.13.2"
     },
     {
       "name": "ESP8266httpUpdate",
