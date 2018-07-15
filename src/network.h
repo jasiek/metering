@@ -42,6 +42,7 @@ struct network_config_t {
   char mqtt_client_name[MQTT_FIELD_LEN + 1];
   char mqtt_device_topic[MQTT_FIELD_LEN + 1];
   char mqtt_incoming_topic[MQTT_FIELD_LEN + 1];
+  char mqtt_log_topic[MQTT_FIELD_LEN + 1];
   char node_name[MAC_LEN + 1];
   char project_name[PROJECT_NAME_LEN + 1];
 };
@@ -60,6 +61,7 @@ namespace network {
   void set_node_name();
   void send(const char *topic, const char *payload, bool retained);
   void subscribe();
+  void log(String &s);
 }
 
 #endif

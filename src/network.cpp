@@ -204,6 +204,7 @@ void network::set_node_name() {
   snprintf(network_config.mqtt_client_name, MQTT_FIELD_LEN, "%s (%s)", network_config.project_name, network_config.node_name);
   if (strlen(network_config.mqtt_device_topic) == 0)
     snprintf(network_config.mqtt_device_topic, MQTT_FIELD_LEN, "devices/%s", network_config.node_name);
+  snprintf(network_config.mqtt_log_topic, MQTT_FIELD_LEN, "logs/%s", network_config.node_name);
 }
 
 void network::subscribe() {
@@ -228,4 +229,8 @@ void network::subscribe() {
   if (mqtt.subscribe("time/epoch")) {
     M_DEBUG("Subscribed to time/epoch");
   }
+}
+
+void network::log(String &s) {
+  send(network_config.mqtt_log_topic, s.c_str(), false);
 }
