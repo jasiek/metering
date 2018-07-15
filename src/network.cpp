@@ -63,7 +63,7 @@ void network::hello() {
 
   String stream;
   root.printTo(stream);
-  send("hello", stream.c_str(), false);
+  log(stream);
 
   M_DEBUG("Waiting 10 seconds for timestamp");
   int timeout = 10;
@@ -170,11 +170,15 @@ void network::mqtt_message_received_cb(String &topic, String &payload) {
   M_DEBUG("Payload: %s", payload.c_str());
 
   if (topic.startsWith("control/")) {
-    if (payload.startsWith("RESET")) ESP.restart();
+    if (payload.startsWith("RESET")) {
+      log("Restarting node...");
+      ESP.restart();
+    }
     if (payload.startsWith("UPDATE")) {
       payload.remove(0, 7);
       payload.trim();
-      updater::update(payload);
+      log("Starting update process from: " + payload);
+      log("Update result: " + updater::update(payload));
     }
     if (payload.startsWith("PING")) {
       send("pong", network_config.node_name, false);
@@ -232,5 +236,6 @@ void network::subscribe() {
 }
 
 void network::log(String &s) {
+  M_DEBUG(s);
   send(network_config.mqtt_log_topic, s.c_str(), false);
 }

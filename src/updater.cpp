@@ -12,22 +12,24 @@ void updater::begin(Ticker *t) {
   _resetter = t;
 }
 
-void updater::update(String &url) {
-  M_DEBUG("Attempting to update from %s", url.c_str());
+void updater::restart() {
+  ESP.restart();
+}
+
+const String updater::update(String &url) {
   if (_resetter != NULL) _resetter->detach();
   ESP8266HTTPUpdate upd;
   upd.rebootOnUpdate(false);
   switch(upd.update(url, GIT_REVISION)) {
-    case HTTP_UPDATE_FAILED:
-      M_DEBUG("Update failed.");
-      break;
-    case HTTP_UPDATE_NO_UPDATES:
-      M_DEBUG("No update required.");
-      break;
-    case HTTP_UPDATE_OK:
-      M_DEBUG("Updated.");
+  case HTTP_UPDATE_FAILED:
+    return String("Update failed.");
+    break;
+  case HTTP_UPDATE_NO_UPDATES:
+    return String("No update required.");
+    break;
+  case HTTP_UPDATE_OK:
+    _resetter->once(5, updater::restart);
+    return String("Updated.");
   }
-  M_DEBUG(upd.getLastErrorString().c_str());
-  delay(5000);
-  ESP.restart();
+  return String("This should never happen.");
 }

@@ -7,7 +7,8 @@
 namespace updater {
   void begin();
   void begin(Ticker *t);
-  void update(String &url);
+  void restart();
+  String update(String &url);
 }
 
 #endif
