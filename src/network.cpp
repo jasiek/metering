@@ -12,6 +12,17 @@ wifi_config_t wifi_config;
 mqtt_config_t mqtt_config;
 extern uint32 timestamp;
 
+const char* const wl_status_strings[] = {
+    "IDLE",
+    "NO SSID AVAILABLE",
+    "SCAN COMPLETED",
+    "CONNECTED",
+    "CONNECT FAILED",
+    "CONNECTION LOST",
+    "DISCONNECTED",
+    0
+};
+
 void network::start(const char *project_name) {
   network::start(project_name, false);
 }
@@ -146,7 +157,7 @@ void network::maybe_reconnect() {
   if (WiFiMulti.run() == WL_CONNECTED && mqtt.connected()) return;
 
   while (WiFiMulti.run() != WL_CONNECTED) {
-    M_DEBUG("Reconnecting to WiFi");
+    M_DEBUG("Reconnecting to WiFi (status = %s)", wl_status_strings[WiFiMulti.run()]);
     delay(WIFI_RECONNECT_DELAY);
   }
 
