@@ -43,6 +43,12 @@ void network::start(const char *project_name, bool mqtt_username_as_device_id) {
   set_node_name();
 
   WiFiMulti.addAP(wifi_config.ssid, wifi_config.password);
+
+#ifdef METERING_SSL_INSECURE
+  // Use sparingly.
+  clientSecure.setInsecure();
+#endif
+
   mqtt.begin(mqtt_config.server,
     mqtt_config.port,
     mqtt_config.ssl ? clientSecure : clientRegular);
