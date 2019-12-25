@@ -194,7 +194,7 @@ void network::mqtt_message_received_cb(String &topic, String &payload) {
   if (topic == "time/epoch") {
     long t = atol(payload.c_str());
     if (t > 0) {
-      time::set(t);
+      m_time::set(t);
       M_DEBUG("Time set to %d", t);
     }
   }
