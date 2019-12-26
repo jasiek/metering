@@ -305,9 +305,4 @@ void network::subscribe() {
   if (mqtt.subscribe(control_topic)) {
     M_DEBUG("Subscribed to %s", control_topic);
   }
-
-  // Subscribe to an MQTT channel with the current time
-  if (mqtt.subscribe("time/epoch")) {
-    M_DEBUG("Subscribed to time/epoch");
-  }
 }
